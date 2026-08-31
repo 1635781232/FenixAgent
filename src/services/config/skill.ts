@@ -46,7 +46,12 @@ export async function listSkills(ctx: AuthContext): Promise<SkillConfigRowWithAc
     .where(eq(skill.organizationId, ctx.organizationId))
     .orderBy(desc(skill.createdAt))) as SkillConfigRow[];
   const external = await listExternalSkills(ctx);
-  return decorateResourceAccess(ctx, "skill", [...internal, ...external]);
+  const rows = [...internal, ...external];
+  const decorated = await decorateResourceAccess(ctx, "skill", rows);
+  // 普通成员的内部 Skill 只能看到已公开项；外部 Skill 已由资源授权表筛选。
+  return ctx.role === "member"
+    ? decorated.filter((row) => row.organizationId !== ctx.organizationId || row.resourceAccess.publicReadable === true)
+    : decorated;
 }
 
 export async function getSkill(ctx: AuthContext, name: string): Promise<SkillConfigRowWithAccess | null> {
@@ -58,7 +63,8 @@ export async function getSkill(ctx: AuthContext, name: string): Promise<SkillCon
   const internal = (rows[0] ?? null) as SkillConfigRow | null;
   if (internal) {
     const [decorated] = await decorateResourceAccess(ctx, "skill", [internal]);
-    return decorated;
+    // 与列表行为一致：普通成员按名称读取内部非公开 Skill 时也应返回空。
+    return ctx.role === "member" && !decorated.resourceAccess.publicReadable ? null : decorated;
   }
 
   const external = (await listExternalSkills(ctx)).find((row) => row.name === name);
@@ -76,7 +82,8 @@ export async function getSkillById(ctx: AuthContext, id: string): Promise<SkillC
 
   if (row.organizationId === ctx.organizationId) {
     const [decorated] = await decorateResourceAccess(ctx, "skill", [row]);
-    return decorated;
+    // 通过 ID 读取不能绕过普通成员对内部非公开 Skill 的限制。
+    return ctx.role === "member" && !decorated.resourceAccess.publicReadable ? null : decorated;
   }
 
   const canRead = await canReadResource(ctx, "skill", row.id, row.organizationId);
@@ -96,6 +103,12 @@ export async function getSkillByResourceKey(
   const row = (rows[0] ?? null) as SkillConfigRow | null;
   if (!row || row.organizationId !== parsed.sourceOrganizationId) return null;
 
+  if (row.organizationId === ctx.organizationId) {
+    const [decorated] = await decorateResourceAccess(ctx, "skill", [row]);
+    // 资源键读取同样走内部公开状态校验，防止不同查询入口产生权限差异。
+    return ctx.role === "member" && !decorated.resourceAccess.publicReadable ? null : decorated;
+  }
+
   const canRead = await canReadResource(ctx, "skill", row.id, row.organizationId);
   if (!canRead) return null;
 
@@ -109,6 +122,8 @@ export async function upsertSkill(
   data: SkillUpsertData,
   options: SkillSetOptions = {},
 ) {
+  // 创建前也执行写入校验，避免普通成员借由“资源尚不存在”绕过后续更新校验。
+  assertInternalWritable(ctx, "skill", name, ctx.organizationId);
   const existing = await db
     .select({ id: skill.id })
     .from(skill)

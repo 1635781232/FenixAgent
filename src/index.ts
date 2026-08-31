@@ -35,6 +35,7 @@ import skillDownloadRoutes from "./routes/skills";
 import webApp from "./routes/web";
 import { workflowStaticApp } from "./routes/web/workflow-proxy";
 import { startAcpIdleMonitor, stopAcpIdleMonitor } from "./services/acp-idle-monitor";
+import { initializeAuthorizationPlugin } from "./services/authorization-plugin-loader";
 import { buildHealthInfo } from "./services/build-info";
 import { closeCache } from "./services/cache";
 import { initCoreRuntime } from "./services/core-bootstrap";
@@ -59,6 +60,7 @@ startupLog.info("Database initialized");
 
 const env = validateEnv();
 applyEnv(env);
+await initializeAuthorizationPlugin(env.RCS_AUTHORIZATION_PLUGIN_MODULE);
 registerConfiguredSandboxProviders();
 
 // 废弃环境变量启动告警：RCS_DEFAULT_MACHINE_TYPE 是 637a4cef 引入的死配置，服务端从未读取，

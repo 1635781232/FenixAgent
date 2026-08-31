@@ -87,6 +87,10 @@ const envSchema = z.object({
   RAGFLOW_API_KEY: z.string().default(""),
   RAGFLOW_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
 
+  // ── 可选：授权插件 ──
+  // Core 只按模块名加载符合 AuthorizationPluginModule 契约的实现；具体引擎变量由插件自行读取。
+  RCS_AUTHORIZATION_PLUGIN_MODULE: z.string().min(1).optional(),
+
   // ── 可选：认证 ──
   RCS_DISABLE_SIGNUP: z
     .string()

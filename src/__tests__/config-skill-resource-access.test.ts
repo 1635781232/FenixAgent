@@ -1,13 +1,19 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { AppError } from "../errors";
 import type { AuthContext } from "../plugins/auth";
-import { setOrganizationRepoForTesting } from "../services/resource-permission";
+import { _resetDeps, setOrganizationRepoForTesting } from "../services/resource-permission";
 import { resetAllStubs, stubDb, stubResourcePermissionRepo } from "../test-utils/helpers";
 
 const ctx: AuthContext = {
   organizationId: "org_current",
   userId: "user_owner",
   role: "owner",
+};
+
+const memberCtx: AuthContext = {
+  organizationId: "org_current",
+  userId: "user_member",
+  role: "member",
 };
 
 const now = new Date("2026-06-01T00:00:00.000Z");
@@ -91,6 +97,7 @@ function installDb(selectResults: unknown[][], options: { insertId?: string; del
 describe("config skill resource access", () => {
   beforeEach(() => {
     resetAllStubs();
+    _resetDeps();
     setOrganizationRepoForTesting({
       listNamesByIds: async () =>
         new Map([
@@ -154,6 +161,17 @@ describe("config skill resource access", () => {
     expect(row?.id).toBe("skill_external");
     expect(row?.resourceAccess.writable).toBe(false);
     expect(row?.resourceAccess.resourceKey).toBe("org_source/skill_external");
+  });
+
+  // member 只能读取当前组织公开的 Skill
+  test("member 无法读取当前组织的非公开 Skill", async () => {
+    installDb([[skillRow({ id: "skill_private" })]]);
+    stubResourcePermissionRepo({
+      listOwnedByOrganization: async () => [],
+    });
+
+    const { getSkill } = await import("../services/config/skill");
+    await expect(getSkill(memberCtx, "shared")).resolves.toBeNull();
   });
 
   // upsertSkill 携带 publicReadable 时通过权限 service 写入公开授权

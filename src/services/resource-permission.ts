@@ -7,6 +7,7 @@ import {
   type ResourcePermissionType,
   resourcePermissionRepo,
 } from "../repositories/resource-permission";
+import { authorizationSubjectFromAuthContext, requireAuthorization } from "./authorization-gateway";
 import type { ResourceAccess, ResourceAccessInput } from "./config/types";
 
 export const _deps: { repo: IResourcePermissionRepo; organizationRepo: IOrganizationRepo } = {
@@ -29,22 +30,22 @@ export function setOrganizationRepoForTesting(repo: IOrganizationRepo) {
 
 export function buildResourceAccess(
   ctx: AuthContext,
-  _resourceType: ResourcePermissionType,
+  resourceType: ResourcePermissionType,
   row: ResourceAccessInput,
   publicReadable?: boolean,
   sourceOrganizationName?: string,
 ): ResourceAccess {
   const internal = row.organizationId === ctx.organizationId;
+  // Skill 的普通成员只能读取公开资源；owner/admin 仍沿用既有的组织内管理能力。
+  const canManage = internal && (resourceType !== "skill" || ctx.role === "owner" || ctx.role === "admin");
   return {
     ownership: internal ? "internal" : "external",
     sourceOrganizationId: row.organizationId,
     sourceOrganizationName,
     resourceUid: row.id,
     resourceKey: `${row.organizationId}/${row.id}`,
-    // Public-read toggles go through the original resource write APIs, which only
-    // require the resource to belong to the current organization.
-    manageable: internal,
-    writable: internal,
+    manageable: canManage,
+    writable: canManage,
     publicReadable: internal ? publicReadable : undefined,
   };
 }
@@ -89,7 +90,20 @@ export async function setPublicRead(
   resourceId: string,
   enabled: boolean,
 ) {
+  // 先执行现有的资源归属和基础写入校验，避免企业策略绕过租户/组织边界。
   assertInternalWritable(ctx, resourceType, resourceId, ownerOrganizationId);
+  if (resourceType === "skill") {
+    // Skill 共享是企业受控动作；业务服务只提交统一请求，不直接依赖具体授权引擎。
+    await requireAuthorization({
+      subject: authorizationSubjectFromAuthContext(ctx),
+      action: "skill:share",
+      resource: {
+        kind: "skill",
+        id: resourceId,
+        organizationId: ownerOrganizationId,
+      },
+    });
+  }
   if (enabled) {
     return _deps.repo.createGrant({
       organizationId: ownerOrganizationId,
@@ -117,18 +131,28 @@ export async function canReadResource(
   resourceId: string,
   ownerOrganizationId: string,
 ) {
-  if (ownerOrganizationId === ctx.organizationId) return true;
-  return _deps.repo.canReadExternalResource(ownerOrganizationId, resourceType, resourceId, ctx.organizationId);
+  // 读取授权仍以 PostgreSQL 资源授权表为事实来源；外部授权关系同步完成后再由独立迁移切片替换。
+  const postgresAllowed =
+    ownerOrganizationId === ctx.organizationId
+      ? true
+      : await _deps.repo.canReadExternalResource(ownerOrganizationId, resourceType, resourceId, ctx.organizationId);
+
+  return postgresAllowed;
 }
 
 export function assertInternalWritable(
   ctx: AuthContext,
-  _resourceType: ResourcePermissionType,
+  resourceType: ResourcePermissionType,
   _resourceId: string,
   ownerOrganizationId: string,
 ) {
+  // 外部资源始终只读，先于角色判断拒绝，防止跨组织写入。
   if (ownerOrganizationId !== ctx.organizationId) {
     throw new AppError("External resource is read-only", "FORBIDDEN", 403);
+  }
+  if (resourceType === "skill" && ctx.role === "member") {
+    // 普通成员不能通过同组织关系获得 Skill 写入或共享能力。
+    throw new AppError("Members have read-only access to public Skills", "FORBIDDEN", 403);
   }
 }
 

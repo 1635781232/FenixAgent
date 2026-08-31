@@ -219,10 +219,11 @@ export function AgentSkillsPage() {
     [],
   );
 
-  // 按 ownership 分组，同时应用搜索过滤
+  // 外部来源或已公开的内部 Skill 均属于“已共享”；其余内部 Skill 归为私有。
+  // 这样列表分组与后端 publicReadable 的访问语义保持一致。
   const { privateSkills, sharedSkills } = useMemo(() => {
-    const priv = skills.filter((s) => s.resourceAccess?.ownership !== "external");
-    const shared = skills.filter((s) => s.resourceAccess?.ownership === "external");
+    const shared = skills.filter((s) => s.resourceAccess?.ownership === "external" || s.resourceAccess?.publicReadable);
+    const priv = skills.filter((s) => s.resourceAccess?.ownership !== "external" && !s.resourceAccess?.publicReadable);
     if (!searchQuery.trim()) return { privateSkills: priv, sharedSkills: shared };
     const q = searchQuery.toLowerCase();
     return {

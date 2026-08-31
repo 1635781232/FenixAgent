@@ -81,17 +81,23 @@ describe("resource-permission service", () => {
     });
   });
 
-  // member 组织内资源可写，且公开开关能力与原写接口保持一致
-  test("member 内部资源允许管理公开状态", async () => {
+  // member 仅可读取公开 Skill，不能写入或管理共享
+  test("member 内部 Skill 为只读且不可管理", async () => {
     stubResourcePermissionRepo({
       listOwnedByOrganization: async () => [],
     });
 
     const [row] = await decorateResourceAccess(memberCtx, "skill", [{ id: "skill_1", organizationId: "org_current" }]);
 
-    expect(row.resourceAccess.manageable).toBe(true);
-    expect(row.resourceAccess.writable).toBe(true);
+    expect(row.resourceAccess.manageable).toBe(false);
+    expect(row.resourceAccess.writable).toBe(false);
     expect(row.resourceAccess.publicReadable).toBe(false);
+  });
+
+  // 普通成员不能借同组织归属修改或改变 Skill 的共享状态。
+  test("member 不能修改或管理同组织 Skill", async () => {
+    expect(() => assertInternalWritable(memberCtx, "skill", "skill_1", "org_current")).toThrow(AppError);
+    await expect(setPublicRead(memberCtx, "skill", "org_current", "skill_1", true)).rejects.toThrow(AppError);
   });
 
   // 外部授权资源只读、不可管理，并使用 ownerOrg/resourceId 作为稳定 key

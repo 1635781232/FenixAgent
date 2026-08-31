@@ -1,0 +1,52 @@
+model
+  schema 1.1
+
+type user
+
+type organization
+  relations
+    define org_owner: [user]
+    define org_admin: [user]
+    define member: [user]
+    define auditor: [user]
+    define can_create_skill: org_owner or org_admin
+    define can_manage_members: org_owner or org_admin
+    define can_read_audit: auditor
+
+type department
+  relations
+    define organization: [organization]
+    define parent: [department]
+    define member: [user] or member from parent
+    define resource_admin: [user]
+    define can_create_skill: resource_admin or org_admin from organization
+
+type skill_space
+  relations
+    define organization: [organization]
+    define resource_admin: [user]
+    define member: [user]
+    define reviewer: [user]
+    define can_create_skill: resource_admin or member or org_admin from organization
+    define can_manage_members: resource_admin or org_admin from organization
+
+type skill
+  relations
+    define organization: [organization]
+    define department: [department]
+    define space: [skill_space]
+    define owner: [user]
+    define creator: [user]
+    define resource_admin: [user]
+    define collaborator: [user]
+    define shared_with: [user, department#member]
+    define editor: [user, department#member]
+    define sharer: [user, department#member]
+
+    define can_read: owner or creator or resource_admin or collaborator or shared_with or editor or resource_admin from space or member from space or reviewer from space
+    define can_use: owner or resource_admin or shared_with or resource_admin from space
+    define can_edit: owner or resource_admin or editor or resource_admin from space
+    define can_review: resource_admin from space or reviewer from space
+    define can_publish: resource_admin from space or reviewer from space
+    define can_share: owner or resource_admin or sharer or resource_admin from space or org_owner from organization or org_admin from organization
+    define can_delete: owner or resource_admin or resource_admin from space
