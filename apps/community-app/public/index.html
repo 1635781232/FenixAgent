@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fenix Skill Studio</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Fenix Skill Studio 首页">
+        <span class="brand-mark">F</span>
+        <span>Fenix Skill Studio</span>
+      </a>
+      <span class="runtime-pill"><span></span>Community App · 内存演示</span>
+    </header>
+
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">FIRST VERTICAL SLICE</p>
+          <h1>Skill 管理工作台</h1>
+          <p>创建、编辑、运行和删除 Skill。当前数据仅保存在服务进程内存中。</p>
+        </div>
+        <button id="create-skill" class="primary-button">新建 Skill</button>
+      </section>
+
+      <section class="layout">
+        <aside class="panel skill-list-panel">
+          <div class="panel-heading"><h2>我的 Skills</h2><span id="skill-count">0</span></div>
+          <div id="skill-list" class="skill-list" aria-live="polite"></div>
+        </aside>
+
+        <section class="panel editor-panel" aria-live="polite">
+          <div id="empty-state" class="empty-state">
+            <div class="empty-icon">✦</div>
+            <h2>选择一个 Skill</h2>
+            <p>从左侧选择已有 Skill，或新建一个 Skill 开始编辑。</p>
+          </div>
+
+          <form id="skill-form" class="skill-form" hidden>
+            <div class="editor-heading">
+              <div><p class="eyebrow">SKILL CONFIGURATION</p><h2 id="editor-title">编辑 Skill</h2></div>
+              <button id="delete-skill" type="button" class="text-button danger">删除</button>
+            </div>
+
+            <label>名称<input id="skill-name" name="name" maxlength="60" required /></label>
+            <label>描述<textarea id="skill-description" name="description" rows="3" maxlength="200" required></textarea></label>
+            <label>提示词<textarea id="skill-prompt" name="prompt" rows="6" maxlength="1000" required></textarea></label>
+            <div class="form-actions"><button type="submit" class="primary-button">保存修改</button></div>
+          </form>
+        </section>
+      </section>
+
+      <section id="run-panel" class="panel run-panel" hidden>
+        <div><p class="eyebrow">TRY IT</p><h2>运行当前 Skill</h2><p>填写一段材料，查看业务服务返回的模拟结果。</p></div>
+        <div class="run-form">
+          <textarea id="run-source" rows="3" placeholder="例如：讨论了多租户数据隔离、审计和权限模型。"></textarea>
+          <button id="run-skill" class="primary-button">运行 Skill</button>
+        </div>
+        <pre id="run-result" class="run-result" hidden></pre>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

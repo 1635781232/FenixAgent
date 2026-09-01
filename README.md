@@ -1,8 +1,8 @@
 # FenixAgent V4 纯架构验证脚手架
 
-该仓库分支是从零搭建的独立 Bun workspace，用于验证 V4 包关系、契约注册、插件依赖排序和发行版装配。
+该仓库分支是从零搭建的独立 Bun workspace，用于验证 V4 包关系、契约注册、插件依赖排序和发行版装配。当前已包含一个内存型 Skill 纵向用例，用于验证业务代码进入 Core 后的边界。
 
-它不包含旧项目的 `src/`、数据库、OpenFGA、用户、组织、Agent 或任何现有业务代码。所有包直接使用目标架构中的正式 `@fenix/*` 命名。
+它不包含旧项目的 `src/`、数据库、OpenFGA、用户、组织或 Agent 能力。所有包直接使用目标架构中的正式 `@fenix/*` 命名。
 
 ## 依赖关系
 
@@ -55,13 +55,22 @@ bun run typecheck
 bun run build
 ```
 
+## Skill 演示
+
+运行以下命令后，访问 `http://localhost:3400`：
+
+```powershell
+bun run dev:community
+```
+
+演示提供内存型 Skill 的创建、查看、编辑、删除和运行模拟。关闭服务后数据会重置；它不接入数据库、认证或授权系统。
+
 ## 非目标
 
 - 不迁移现有业务代码；
 - 不实现授权、身份、审计或配额；
 - 不连接 OpenFGA 或数据库；
-- 不提供 HTTP Route 或前端页面；
-- 不修改当前 Community 服务启动入口；
+- 不迁移旧项目的 HTTP Route 或前端页面；
 - 不证明现有 `@fenix/core` 已符合 V4 边界。
 
 验证通过后，应选择一个真实但足够小的纵向用例，再决定哪些接口需要进入正式 Plugin SDK 和 App Platform。

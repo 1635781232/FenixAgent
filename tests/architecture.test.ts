@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createFenixApp } from "@fenix/app-platform";
 import { createCommunityApp } from "@fenix/community-app";
-import { DISTRIBUTION_PROFILE } from "@fenix/community-app-kit";
+import { createCommunitySkillApplication, DISTRIBUTION_PROFILE } from "@fenix/community-app-kit";
 import { createEnterpriseApp } from "@fenix/enterprise-app";
 import { defineContract, type FenixPlugin } from "@fenix/plugin-sdk";
 
@@ -14,13 +14,21 @@ async function readDependencies(packagePath: string): Promise<string[]> {
   return Object.keys(manifest.dependencies ?? {}).sort();
 }
 
-describe("V4 zero-business scaffold", () => {
+describe("V4 架构与 Skill 用例", () => {
   // Community App 只注册 Community Base，不依赖任何企业插件。
   test("Community 发行版使用 Community Provider", async () => {
     const app = createCommunityApp();
     await app.start();
 
     expect(app.contracts.resolve(DISTRIBUTION_PROFILE)).toEqual({ edition: "community" });
+  });
+
+  // Community App 获取业务用例时，仍须经由 Community Kit 装配并完成启动校验。
+  test("Community Kit 暴露已装配的 Skill 业务用例", async () => {
+    const application = createCommunitySkillApplication();
+    await application.start();
+
+    expect(application.skills.list()).toHaveLength(1);
   });
 
   // Enterprise App 复用 Community Base，并通过显式插件替换公开契约。

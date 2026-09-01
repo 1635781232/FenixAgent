@@ -9,6 +9,7 @@
     "apps/*"
   ],
   "scripts": {
+    "dev:community": "bun run apps/community-app/src/server.ts",
     "test": "bun test",
     "typecheck": "bun run --workspaces --if-present typecheck",
     "build": "bun run --workspaces --if-present build"
