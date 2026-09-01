@@ -1,1 +1,0 @@
-ALTER TABLE "knowledge_base" ADD COLUMN "metadata" jsonb;

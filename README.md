@@ -1,135 +1,67 @@
-# FenixAgent
+# FenixAgent V4 纯架构验证脚手架
 
-FenixAgent 是一个 ACP Agent的统一后端服务，你可以通过它来控制所有支持 ACP 协议的 Agent，比如 OpenCode、OpenClaw、Claude Code、DeepSeek Harness (DSH) 等。
+该仓库分支是从零搭建的独立 Bun workspace，用于验证 V4 包关系、契约注册、插件依赖排序和发行版装配。
 
-## 功能
+它不包含旧项目的 `src/`、数据库、OpenFGA、用户、组织、Agent 或任何现有业务代码。所有包直接使用目标架构中的正式 `@fenix/*` 命名。
 
-- **统一的Harness支持** — 为 ACP Agent 提供统一的 Harness 支持，使用不同的 Agent 也能保持一致的体验
-- **统一的资源管理** — 为 ACP Agent 提供统一的 模型、技能、工具、知识库等资源 的配置和注入，可以在同一套资源配置下使用不同的 Agent，不需要对不同的 Agent 做重复配置
-- **ACP Agent适配** — 可控制所有支持 ACP 协议的 Agent（需要实现 Agent 的适配层）
+## 依赖关系
 
-## DeepSeek Harness（DSH）支持
+```text
+Community App
+└─ @fenix/community-app-kit
+   ├─ @fenix/core
+   ├─ @fenix/app-platform
+   └─ @fenix/plugin-sdk
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（dsh）是 DeepSeek 官方的 Agent 框架，原生支持 ACP 协议，可直接接入 FenixAgent。仓库提供 `docker/sandbox-dsh/` 容器镜像，以伪装 ccb 引擎槽位的方式接入，平台侧零改动：模型配置由主服务器下发（API key 不落盘），Web Chat UI、OpenAI 兼容 API、Workflow、会话持久化与多租户 workspace 隔离等平台能力全部复用。使用步骤、权限边界与已知限制详见 [docker/sandbox-dsh/README.md](docker/sandbox-dsh/README.md)。
+Enterprise App
+├─ @fenix/community-app-kit
+├─ @fenix/core
+├─ @fenix/app-platform
+├─ @fenix/plugin-sdk
+└─ Enterprise Plugins
 
-## 快速开始
-
-### Docker 部署（推荐）
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+@fenix/core ──────────┐
+                      ├─ @fenix/plugin-sdk
+@fenix/app-platform ──┘
 ```
 
-默认提供 OpenCode 作为 ACP Agent
+## 目录
 
-默认服务启动在 http://localhost:3001/
+```text
+./
+├─ packages/
+│  ├─ plugin-sdk/          # Contract、Manifest、Plugin 公共类型
+│  ├─ core/                # 无业务的 Core Facade 占位契约
+│  ├─ app-platform/        # ContractRegistry、PluginHost、App Builder
+│  └─ community-app-kit/   # registerCommunityBase()
+├─ plugins/
+│  └─ enterprise-profile/  # 仅验证 Provider 替换的企业插件
+├─ apps/
+│  ├─ community-app/       # Community 显式装配入口
+│  └─ enterprise-app/      # Community Base + Enterprise Plugins
+└─ tests/                  # 纯架构行为测试
+```
 
-首次启动后，系统会自动创建管理员账号 `admin@fenix.com`。初始密码会写入 `RCS_SYSTEM_ADMIN_PASSWORD_FILE`，默认路径是 `data/password.txt`。
+`DistributionProfile` 只是一项无业务含义的验证契约：Community 注册默认 Provider，Enterprise 插件显式替换它。它不代表未来必须存在该产品能力。
 
-### 本地 开发 部署
+## 验证
 
-```bash
-# 使用 docker 启动服务依赖的 postgres 等
-docker compose up -d
+在仓库根目录执行：
 
-# 安装依赖（有更新时候执行）
+```powershell
 bun install
-
-# 同步数据库表结构（有更新时候执行）
-bun db:migrate
-
-# 本地启动服务
-bash restart-server.sh
+bun run test
+bun run typecheck
+bun run build
 ```
 
-需要安装 OpenCode 作为 ACP Agent
+## 非目标
 
-默认服务启动在 http://localhost:3000/
+- 不迁移现有业务代码；
+- 不实现授权、身份、审计或配额；
+- 不连接 OpenFGA 或数据库；
+- 不提供 HTTP Route 或前端页面；
+- 不修改当前 Community 服务启动入口；
+- 不证明现有 `@fenix/core` 已符合 V4 边界。
 
-首次启动后，系统会自动创建管理员账号 `admin@fenix.com`。初始密码会写入 `RCS_SYSTEM_ADMIN_PASSWORD_FILE`，默认路径是 `data/password.txt`。
-
-## 开发
-
-开发流程、提交前检查、测试约定和代码贡献方式，统一参考 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-开发前
-
-```bash
-# 安装依赖（有更新时候执行）
-bun install
-
-# 同步数据库表结构（有更新时候执行）
-bun db:migrate
-```
-
-开发中
-
-```bash
-# 构建前端（更新前端代码后）
-bun run build:web
-
-# 开发模式（热重载）
-bun run dev
-
-# 服务快捷启动脚本，包含上面那两个命令
-bash restart-server.sh
-```
-
-开发完待提交
-
-```bash
-# 代码检查（提交前必做）
-bun precheck
-```
-
-## acp-link 独立部署（分布式执行节点）
-
-acp-link 是 ACP stdio-to-WebSocket 桥接器，部署在远端机器上，负责将 opencode 等 ACP Agent 子进程桥接到 RCS。任何支持 ACP 的 Agent（包括 DSH，见 [DeepSeek Harness 支持](#deepseek-harnessdsh支持)）都可以通过 acp-link 注册为平台的远端执行节点。
-
-### 架构
-
-```
-RCS (Server)                             远端 Machine
-┌──────────────────┐                   ┌──────────────────────┐
-│ /acp/ws          │◀──── WS ────────  │ acp-link (client)    │
-│ /acp/relay/:id   │                   │   └── spawn opencode │
-└──────────────────┘                   └──────────────────────┘
-```
-
-### 部署方式
-
-#### Docker（推荐，Linux）
-
-```bash
-# 构建镜像
-docker build -f docker/machine/Dockerfile -t fenix-machine .
-
-# 启动，自动向 RCS 注册
-docker run -d \
-  --name fenix-machine \
-  --add-host host.docker.internal:host-gateway \
-  -e RCS_URL=ws://host.docker.internal:3000 \
-  -e RCS_SECRET=your-secret \
-  -e RCS_TENANT_ID=org_xxx \
-  -e RCS_LABELS=production,gpu \
-  fenix-machine
-```
-
-如果 RCS 不在宿主机上，可将 `RCS_URL` 改成实际地址（如 `ws://10.0.0.12:3000`），此时通常不需要 `--add-host`。
-
-其中几个 RCS 相关环境变量的含义如下：
-
-| 变量 | 含义 | 如何取值 |
-|------|------|---------|
-| `RCS_URL` | machine 回连的 RCS WebSocket 基地址 | 如果 RCS 跑在宿主机上，填 `ws://host.docker.internal:3000`；如果跑在其他机器上，填实际可访问地址，如 `ws://10.0.0.12:3000` 或 `wss://rcs.example.com` |
-| `RCS_SECRET` | machine 注册到 RCS 时使用的共享密钥 | 必须与 RCS 服务端的 `REGISTRY_SECRET` 完全一致 |
-| `RCS_TENANT_ID` | machine 注册到哪个组织（tenant / organization）下 | 填 RCS 中目标组织的真实 ID，例如 `org_xxx` 或数据库中的组织主键；不能随便填显示名称 |
-| `RCS_LABELS` | machine 的标签列表，供调度和筛选使用 | 逗号分隔字符串，例如 `production,gpu`、`machine-a,test`；可选，不填时默认 `remote-runtime` |
-
-`RCS_URL`、`RCS_SECRET`、`RCS_TENANT_ID` 是启动 machine runtime 的必填项；缺少其中任意一个，容器会直接退出。
-
-多机验收测试（同时启动两台）：
-```bash
-RCS_TENANT_ID=org_xxx REGISTRY_SECRET=test-secret-2026 \
-docker compose -f docker/machine/docker-compose.yml up -d --build
-```
+验证通过后，应选择一个真实但足够小的纵向用例，再决定哪些接口需要进入正式 Plugin SDK 和 App Platform。
