@@ -6,8 +6,10 @@ import type {
   PluginContext,
 } from "@fenix/plugin-sdk";
 
-/** App 装配层向发行版入口转发插件公开类型，避免 App 直接依赖 SDK。 */
-export type { FenixPlugin } from "@fenix/plugin-sdk";
+export { AuthorizationDeniedError, AuthorizedOperationExecutor } from "./authorized-operation-executor";
+
+/** App 装配层向发行版入口转发装配所需公开契约，避免 App 直接依赖 SDK。 */
+export { AUTHORIZATION_POLICY, type FenixPlugin } from "@fenix/plugin-sdk";
 
 interface Binding {
   readonly version: number;

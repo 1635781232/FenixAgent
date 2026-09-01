@@ -1,0 +1,13 @@
+{
+  "name": "@fenix/app-platform-openfga",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "bun build src/index.ts --outdir dist --format esm"
+  }
+}

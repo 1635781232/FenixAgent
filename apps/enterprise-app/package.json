@@ -10,6 +10,7 @@
     "@fenix/app-platform": "workspace:*",
     "@fenix/community-app-kit": "workspace:*",
     "@fenix/core": "workspace:*",
+    "@fenix-enterprise/openfga-authorization-plugin": "workspace:*",
     "@fenix-enterprise/profile-plugin": "workspace:*"
   },
   "scripts": {

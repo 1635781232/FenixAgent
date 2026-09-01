@@ -5,6 +5,20 @@ export interface Contract<T> {
   readonly __valueType?: T;
 }
 
+export {
+  type AccessDecision,
+  type AppPrincipal,
+  type AuthorizationPolicy,
+  type AuthorizedExecutionContext,
+  type ResourceOperation,
+  type ResourceSelector,
+} from "./authorization";
+
+import type { AuthorizationPolicy } from "./authorization";
+
+/** 所有发行版共用的授权策略契约标识。 */
+export const AUTHORIZATION_POLICY = defineContract<AuthorizationPolicy>("app.authorization-policy", 1);
+
 /** 定义契约，不创建实现或全局状态。 */
 export function defineContract<T>(id: string, version: number): Contract<T> {
   if (!id.trim()) throw new Error("Contract id must not be empty");

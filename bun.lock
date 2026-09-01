@@ -5,7 +5,9 @@
     "": {
       "name": "fenix-agent-v4-architecture-scaffold",
       "dependencies": {
+        "@fenix-enterprise/openfga-authorization-plugin": "workspace:*",
         "@fenix/app-platform": "workspace:*",
+        "@fenix/app-platform-openfga": "workspace:*",
         "@fenix/community-app": "workspace:*",
         "@fenix/community-app-kit": "workspace:*",
         "@fenix/enterprise-app": "workspace:*",
@@ -27,6 +29,7 @@
       "name": "@fenix/enterprise-app",
       "version": "0.0.0",
       "dependencies": {
+        "@fenix-enterprise/openfga-authorization-plugin": "workspace:*",
         "@fenix-enterprise/profile-plugin": "workspace:*",
         "@fenix/app-platform": "workspace:*",
         "@fenix/community-app-kit": "workspace:*",
@@ -39,6 +42,10 @@
       "dependencies": {
         "@fenix/plugin-sdk": "workspace:*",
       },
+    },
+    "packages/app-platform/openfga": {
+      "name": "@fenix/app-platform-openfga",
+      "version": "0.0.0",
     },
     "packages/community-app-kit": {
       "name": "@fenix/community-app-kit",
@@ -60,6 +67,14 @@
       "name": "@fenix/plugin-sdk",
       "version": "0.0.0",
     },
+    "plugins/enterprise-openfga-authorization": {
+      "name": "@fenix-enterprise/openfga-authorization-plugin",
+      "version": "0.0.0",
+      "dependencies": {
+        "@fenix/app-platform-openfga": "workspace:*",
+        "@fenix/plugin-sdk": "workspace:*",
+      },
+    },
     "plugins/enterprise-profile": {
       "name": "@fenix-enterprise/profile-plugin",
       "version": "0.0.0",
@@ -70,9 +85,13 @@
     },
   },
   "packages": {
+    "@fenix-enterprise/openfga-authorization-plugin": ["@fenix-enterprise/openfga-authorization-plugin@workspace:plugins/enterprise-openfga-authorization"],
+
     "@fenix-enterprise/profile-plugin": ["@fenix-enterprise/profile-plugin@workspace:plugins/enterprise-profile"],
 
     "@fenix/app-platform": ["@fenix/app-platform@workspace:packages/app-platform"],
+
+    "@fenix/app-platform-openfga": ["@fenix/app-platform-openfga@workspace:packages/app-platform/openfga"],
 
     "@fenix/community-app": ["@fenix/community-app@workspace:apps/community-app"],
 

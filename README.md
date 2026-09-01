@@ -2,7 +2,7 @@
 
 该仓库分支是从零搭建的独立 Bun workspace，用于验证 V4 包关系、契约注册、插件依赖排序和发行版装配。当前已包含一个内存型 Skill 纵向用例，用于验证业务代码进入 Core 后的边界。
 
-它不包含旧项目的 `src/`、数据库、OpenFGA、用户、组织或 Agent 能力。所有包直接使用目标架构中的正式 `@fenix/*` 命名。
+它不包含旧项目的 `src/`、数据库、用户、组织或 Agent 能力。当前新增了 Enterprise OpenFGA 平台接入与统一授权拦截器，但尚未接入任何 Skill 业务路径。所有包直接使用目标架构中的正式 `@fenix/*` 命名。
 
 ## 依赖关系
 
@@ -33,9 +33,11 @@ Enterprise App
 │  ├─ plugin-sdk/          # Contract、Manifest、Plugin 公共类型
 │  ├─ core/                # 无业务的 Core Facade 占位契约
 │  ├─ app-platform/        # ContractRegistry、PluginHost、App Builder
+│  │  └─ openfga/          # 独立的 OpenFGA HTTP 技术适配包
 │  └─ community-app-kit/   # registerCommunityBase()
 ├─ plugins/
-│  └─ enterprise-profile/  # 仅验证 Provider 替换的企业插件
+│  ├─ enterprise-profile/  # 仅验证 Provider 替换的企业插件
+│  └─ enterprise-openfga-authorization/ # Enterprise 唯一授权 Policy Provider
 ├─ apps/
 │  ├─ community-app/       # Community 显式装配入口
 │  └─ enterprise-app/      # Community Base + Enterprise Plugins
@@ -65,11 +67,19 @@ bun run dev:community
 
 演示提供内存型 Skill 的创建、查看、编辑、删除和运行模拟。关闭服务后数据会重置；它不接入数据库、认证或授权系统。
 
+## OpenFGA 授权基础层
+
+- `@fenix/app-platform` 提供与引擎无关的 `AuthorizedOperationExecutor`；
+- `@fenix/app-platform-openfga` 提供 `/healthz`、`Check` 和 `ListObjects` HTTP 接入；
+- Enterprise OpenFGA 插件把业务动作显式映射为 OpenFGA 关系，并统一输出 `AccessDecision` 的 `ids + scopeTags`；
+- Enterprise App 强制要求 `enterprise.authorization.openfga` Provider，缺失或 OpenFGA 健康检查失败时启动失败；
+- 当前 Skill Service、HTTP Route 和页面没有调用授权执行器，尚不能宣称 Skill 已受 OpenFGA 保护。
+
 ## 非目标
 
 - 不迁移现有业务代码；
-- 不实现授权、身份、审计或配额；
-- 不连接 OpenFGA 或数据库；
+- 不实现具体业务授权、身份、审计或配额；
+- 不连接业务数据库，也不投影真实业务 Tuple；
 - 不迁移旧项目的 HTTP Route 或前端页面；
 - 不证明现有 `@fenix/core` 已符合 V4 边界。
 

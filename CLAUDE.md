@@ -2,9 +2,9 @@
 
 ## 项目定位
 
-当前分支是 FenixAgent V4 的架构验证工程，用于从零验证包边界、公开契约、插件装配和 Community / Enterprise 发行版关系。当前包含一个内存型 Skill 纵向用例。
+当前分支是 FenixAgent V4 的架构验证工程，用于从零验证包边界、公开契约、插件装配和 Community / Enterprise 发行版关系。当前包含一个内存型 Skill 纵向用例，以及 Enterprise OpenFGA 基础设施接入和统一授权拦截器。
 
-本分支不迁移现有业务，不接入数据库、OpenFGA、Agent、用户或组织能力。Skill 用例仅用于验证领域代码、App 装配与原生 HTTP 页面之间的边界；后续新增业务能力前应先确认对应的公开契约。
+本分支不迁移现有业务，不接入数据库、Agent、用户或组织能力。OpenFGA 仅验证平台包、Enterprise Policy Provider、`Check` / `ListObjects` 和 `ids + scopeTags` 输出，不修改 Skill 业务服务、HTTP 路由或页面；后续新增业务授权前应先确认动作映射、可信 Scope Tags 来源和关系投影契约。
 
 ## 目标依赖关系
 
@@ -36,6 +36,7 @@ Enterprise App
 6. 插件只依赖公开契约，不得反向依赖 App 入口或其他包的内部文件。
 7. 插件清单必须由发行版显式传入；不得扫描目录、运行时下载或依赖隐式注册副作用。
 8. Enterprise 替换 Community Provider 时必须声明被替换 Provider、替换原因和必需 Provider，替换缺失时启动失败。
+9. Enterprise 以 OpenFGA 为唯一权限决策来源；统一授权拦截器属于 App Platform，OpenFGA Client 与关系名不得进入 Core 或业务模块。
 
 ## 编码规范
 

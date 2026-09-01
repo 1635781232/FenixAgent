@@ -5,6 +5,7 @@
   "type": "module",
   "workspaces": [
     "packages/*",
+    "packages/*/*",
     "plugins/*",
     "apps/*"
   ],
@@ -16,9 +17,11 @@
   },
   "dependencies": {
     "@fenix/app-platform": "workspace:*",
+    "@fenix/app-platform-openfga": "workspace:*",
     "@fenix/community-app": "workspace:*",
     "@fenix/community-app-kit": "workspace:*",
     "@fenix/enterprise-app": "workspace:*",
+    "@fenix-enterprise/openfga-authorization-plugin": "workspace:*",
     "@fenix/plugin-sdk": "workspace:*"
   },
   "devDependencies": {
