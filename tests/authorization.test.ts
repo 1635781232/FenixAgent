@@ -7,6 +7,7 @@ import { OpenFgaClient, type OpenFgaFetch } from "@fenix/app-platform-openfga";
 import {
   EnterpriseOpenFgaAuthorizationPolicy,
 } from "@fenix-enterprise/openfga-authorization-plugin";
+import { CommunityAllowAllAuthorizationPolicy } from "@fenix/community-app-kit";
 import type { AuthorizationPolicy } from "@fenix/plugin-sdk";
 
 const OPENFGA_CONFIG = {
@@ -16,6 +17,25 @@ const OPENFGA_CONFIG = {
 } as const;
 
 describe("统一授权拦截器", () => {
+  // Community 版不能绕过统一接口，而应把业务候选 IDs 原样作为允许范围返回。
+  test("Community Provider 通过统一接口返回全部候选资源", async () => {
+    const policy = new CommunityAllowAllAuthorizationPolicy();
+
+    await expect(
+      policy.authorize(
+        { id: "alice", type: "user" },
+        {
+          resourceType: "skill",
+          action: "skill:use",
+          requestedIds: ["skill-1", "skill-2"],
+        },
+      ),
+    ).resolves.toEqual({
+      result: "allow-filtered",
+      selector: { ids: ["skill-1", "skill-2"], scopeTags: undefined },
+    });
+  });
+
   // 拒绝结果必须在业务回调执行前终止请求，避免 Core 被误调用。
   test("拒绝决策不会执行业务回调", async () => {
     let executed = false;
@@ -35,6 +55,20 @@ describe("统一授权拦截器", () => {
     ).rejects.toBeInstanceOf(AuthorizationDeniedError);
 
     expect(executed).toBeFalse();
+  });
+
+  // 前端能力检查必须把拒绝决策转换为 false，页面据此隐藏编辑按钮。
+  test("单资源能力检查返回拒绝结果", async () => {
+    const executor = new AuthorizedOperationExecutor({
+      authorize: async () => ({ result: "deny", reason: "no_edit_permission" }),
+    });
+
+    await expect(
+      executor.check(
+        { id: "alice" },
+        { resourceType: "skill", action: "skill:edit", resourceId: "skill-1" },
+      ),
+    ).resolves.toBeFalse();
   });
 
   // 允许结果的 ids 与 scopeTags 必须原样进入统一执行上下文。

@@ -28,4 +28,19 @@ describe("SkillService", () => {
       service.create({ name: " ", description: "有效描述", prompt: "有效提示词" }),
     ).toThrow(SkillValidationError);
   });
+
+  // 关键字与状态过滤属于纯业务查询，并与统一授权 selector 在 Core 查询中求交集。
+  test("按照关键字和状态过滤 Skill", () => {
+    const service = new SkillService();
+
+    expect(service.list({ keyword: "开发", status: "published" }).map((skill) => skill.name)).toEqual([
+      "开发辅助助手",
+    ]);
+    expect(service.list({ status: "draft" })).toHaveLength(6);
+    expect(service.list({ status: "draft" }).map((skill) => skill.name)).toContain("API 审核助手");
+    expect(service.list({}, { ids: ["skill-2", "skill-7"] }).map((skill) => skill.id).sort()).toEqual([
+      "skill-2",
+      "skill-7",
+    ]);
+  });
 });

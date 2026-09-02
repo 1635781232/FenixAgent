@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { AUTHORIZATION_POLICY, createFenixApp } from "@fenix/app-platform";
 import { createCommunityApp } from "@fenix/community-app";
-import { createCommunitySkillApplication, DISTRIBUTION_PROFILE } from "@fenix/community-app-kit";
+import {
+  COMMUNITY_AUTHORIZATION_POLICY_PROVIDER,
+  createCommunitySkillApplication,
+  DISTRIBUTION_PROFILE,
+} from "@fenix/community-app-kit";
 import { createEnterpriseApp } from "@fenix/enterprise-app";
 import { defineContract, type FenixPlugin } from "@fenix/plugin-sdk";
 
@@ -33,6 +37,7 @@ describe("V4 架构与 Skill 用例", () => {
     await app.start();
 
     expect(app.contracts.resolve(DISTRIBUTION_PROFILE)).toEqual({ edition: "community" });
+    expect(app.contracts.providerId(AUTHORIZATION_POLICY)).toBe(COMMUNITY_AUTHORIZATION_POLICY_PROVIDER);
   });
 
   // Community App 获取业务用例时，仍须经由 Community Kit 装配并完成启动校验。
@@ -40,7 +45,7 @@ describe("V4 架构与 Skill 用例", () => {
     const application = createCommunitySkillApplication();
     await application.start();
 
-    expect(application.skills.list()).toHaveLength(1);
+    expect(application.skills.list()).toHaveLength(12);
   });
 
   // Enterprise App 复用 Community Base，并通过显式插件替换公开契约。
@@ -69,7 +74,7 @@ describe("V4 架构与 Skill 用例", () => {
     });
 
     await expect(app.start()).rejects.toThrow("OpenFGA health check failed: HTTP 503");
-    expect(app.contracts.providerId(AUTHORIZATION_POLICY)).toBeUndefined();
+    expect(app.contracts.providerId(AUTHORIZATION_POLICY)).toBe(COMMUNITY_AUTHORIZATION_POLICY_PROVIDER);
   });
 
   // PluginHost 必须按声明依赖排序，传入数组顺序不能影响初始化顺序。

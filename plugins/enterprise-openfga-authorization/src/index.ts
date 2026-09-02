@@ -91,17 +91,19 @@ export class EnterpriseOpenFgaAuthorizationPolicy implements AuthorizationPolicy
 /** 创建显式安装的 Enterprise OpenFGA 授权插件。 */
 export function createEnterpriseOpenFgaAuthorizationPlugin(
   options: EnterpriseOpenFgaAuthorizationOptions,
+  replacesProvider: string,
 ): FenixPlugin {
   return {
     manifest: { id: ENTERPRISE_OPENFGA_PLUGIN_ID, version: "0.0.0" },
     async register(context) {
       const client = new OpenFgaClient(options.config, options.fetcher);
       await client.assertHealthy();
-      context.contracts.bind(
-        AUTHORIZATION_POLICY,
-        ENTERPRISE_OPENFGA_POLICY_PROVIDER,
-        new EnterpriseOpenFgaAuthorizationPolicy(client, options.actionRelations),
-      );
+      context.contracts.replace(AUTHORIZATION_POLICY, {
+        replacementId: ENTERPRISE_OPENFGA_POLICY_PROVIDER,
+        replacesProvider,
+        reason: "Enterprise uses OpenFGA as its only authorization decision source",
+        value: new EnterpriseOpenFgaAuthorizationPolicy(client, options.actionRelations),
+      });
     },
   };
 }

@@ -12,7 +12,7 @@
         <span class="brand-mark">F</span>
         <span>Fenix Skill Studio</span>
       </a>
-      <span class="runtime-pill"><span></span>Community App · 内存演示</span>
+      <span class="runtime-pill"><span></span>Community App · 统一鉴权默认通过</span>
     </header>
 
     <main class="shell">
@@ -20,14 +20,38 @@
         <div>
           <p class="eyebrow">FIRST VERTICAL SLICE</p>
           <h1>Skill 管理工作台</h1>
-          <p>创建、编辑、运行和删除 Skill。当前数据仅保存在服务进程内存中。</p>
+          <p>先经过统一授权接口，再执行 Skill 查询和操作。Community Provider 默认通过，尚未接入 OpenFGA。</p>
         </div>
         <button id="create-skill" class="primary-button">新建 Skill</button>
       </section>
 
+      <section class="panel organization-panel" aria-labelledby="organization-title">
+        <div class="organization-heading">
+          <div>
+            <p class="eyebrow">ORGANIZATION CONTEXT</p>
+            <h2 id="organization-title">演示组织</h2>
+          </div>
+          <div class="principal-picker">
+            <label for="current-user">当前用户</label>
+            <select id="current-user" aria-label="当前用户"></select>
+            <span>Community 鉴权默认通过</span>
+          </div>
+        </div>
+        <div id="organization-tree" class="organization-tree" aria-live="polite"></div>
+      </section>
+
       <section class="layout">
         <aside class="panel skill-list-panel">
-          <div class="panel-heading"><h2>我的 Skills</h2><span id="skill-count">0</span></div>
+          <div class="panel-heading"><h2>Skills</h2><span id="skill-count">0</span></div>
+          <div id="authorization-summary" class="authorization-summary">正在通过统一授权接口过滤…</div>
+          <div class="list-filters">
+            <input id="skill-keyword" type="search" placeholder="搜索名称或描述" />
+            <select id="skill-status-filter" aria-label="按状态过滤">
+              <option value="">全部状态</option>
+              <option value="published">已发布</option>
+              <option value="draft">草稿</option>
+            </select>
+          </div>
           <div id="skill-list" class="skill-list" aria-live="polite"></div>
         </aside>
 
@@ -41,13 +65,21 @@
           <form id="skill-form" class="skill-form" hidden>
             <div class="editor-heading">
               <div><p class="eyebrow">SKILL CONFIGURATION</p><h2 id="editor-title">编辑 Skill</h2></div>
-              <button id="delete-skill" type="button" class="text-button danger">删除</button>
+              <div class="editor-actions">
+                <span id="edit-access" class="access-state">正在检查编辑权限…</span>
+                <button id="edit-skill" type="button" class="secondary-button" hidden>编辑</button>
+                <button id="delete-skill" type="button" class="text-button danger" hidden>删除</button>
+              </div>
             </div>
 
             <label>名称<input id="skill-name" name="name" maxlength="60" required /></label>
             <label>描述<textarea id="skill-description" name="description" rows="3" maxlength="200" required></textarea></label>
+            <label>状态<select id="skill-status" name="status"><option value="draft">草稿</option><option value="published">已发布</option></select></label>
             <label>提示词<textarea id="skill-prompt" name="prompt" rows="6" maxlength="1000" required></textarea></label>
-            <div class="form-actions"><button type="submit" class="primary-button">保存修改</button></div>
+            <div id="form-actions" class="form-actions" hidden>
+              <button id="cancel-edit" type="button" class="secondary-button">取消</button>
+              <button type="submit" class="primary-button">保存修改</button>
+            </div>
           </form>
         </section>
       </section>

@@ -17,40 +17,122 @@ const server = Bun.serve({
   async fetch(request) {
     const url = new URL(request.url);
     try {
+      if (url.pathname === "/api/organization" && request.method === "GET") {
+        return json({ organization: runtime.organization.snapshot() });
+      }
       if (url.pathname === "/api/skills" && request.method === "GET") {
-        return json({ skills: runtime.skills.list() });
+        const principal = currentPrincipal(request);
+        const query = {
+          keyword: url.searchParams.get("keyword") ?? undefined,
+          status: optionalSkillStatus(url.searchParams.get("status") ?? undefined),
+        };
+        const candidates = runtime.skills.list(query);
+        return runtime.authorization.run(
+          principal,
+          {
+            resourceType: "skill",
+            action: "skill:use",
+            requestedIds: candidates.map((skill) => skill.id),
+          },
+          async ({ selector }) => {
+            const skills = runtime.skills.list(query, selector);
+            return json({
+              skills,
+              authorization: authorizationTrace(principal.id, "skill:use", candidates.length, skills.length),
+            });
+          },
+        );
       }
       if (url.pathname === "/api/skills" && request.method === "POST") {
+        const principal = currentPrincipal(request);
         const body = await readBody(request);
-        const skill = runtime.skills.create({
-          name: requiredString(body, "name"),
-          description: requiredString(body, "description"),
-          prompt: requiredString(body, "prompt"),
+        return runtime.authorization.run(
+          principal,
+          { resourceType: "skill", action: "skill:create" },
+          async () => {
+            const skill = runtime.skills.create({
+              name: requiredString(body, "name"),
+              description: requiredString(body, "description"),
+              prompt: requiredString(body, "prompt"),
+              status: optionalSkillStatus(optionalString(body, "status")),
+            });
+            return json({ skill }, 201);
+          },
+        );
+      }
+
+      const accessSkillId = decodeSkillAccessPath(url.pathname);
+      if (accessSkillId && request.method === "GET") {
+        const principal = currentPrincipal(request);
+        runtime.skills.get(accessSkillId);
+        const [canEdit, canDelete] = await Promise.all([
+          runtime.authorization.check(principal, {
+            resourceType: "skill",
+            action: "skill:edit",
+            resourceId: accessSkillId,
+          }),
+          runtime.authorization.check(principal, {
+            resourceType: "skill",
+            action: "skill:delete",
+            resourceId: accessSkillId,
+          }),
+        ]);
+        return json({
+          permissions: { canEdit, canDelete },
+          authorization: {
+            provider: runtime.authorizationProvider,
+            principalId: principal.id,
+            checks: ["skill:edit", "skill:delete"],
+          },
         });
-        return json({ skill }, 201);
       }
 
       const skillId = decodeSkillPath(url.pathname);
       if (skillId && request.method === "GET") {
-        return json({ skill: runtime.skills.get(skillId) });
+        const principal = currentPrincipal(request);
+        return runtime.authorization.run(
+          principal,
+          { resourceType: "skill", action: "skill:use", resourceId: skillId },
+          async () => json({ skill: runtime.skills.get(skillId) }),
+        );
       }
       if (skillId && request.method === "PUT") {
+        const principal = currentPrincipal(request);
         const body = await readBody(request);
-        const skill = runtime.skills.update(skillId, {
-          name: optionalString(body, "name"),
-          description: optionalString(body, "description"),
-          prompt: optionalString(body, "prompt"),
-        });
-        return json({ skill });
+        return runtime.authorization.run(
+          principal,
+          { resourceType: "skill", action: "skill:edit", resourceId: skillId },
+          async () => {
+            const skill = runtime.skills.update(skillId, {
+              name: optionalString(body, "name"),
+              description: optionalString(body, "description"),
+              prompt: optionalString(body, "prompt"),
+              status: optionalSkillStatus(optionalString(body, "status")),
+            });
+            return json({ skill });
+          },
+        );
       }
       if (skillId && request.method === "DELETE") {
-        runtime.skills.delete(skillId);
-        return new Response(null, { status: 204 });
+        const principal = currentPrincipal(request);
+        return runtime.authorization.run(
+          principal,
+          { resourceType: "skill", action: "skill:delete", resourceId: skillId },
+          async () => {
+            runtime.skills.delete(skillId);
+            return new Response(null, { status: 204 });
+          },
+        );
       }
       if (skillId && url.pathname.endsWith("/run") && request.method === "POST") {
+        const principal = currentPrincipal(request);
         const body = await readBody(request);
         const source = optionalString(body, "source");
-        return json({ result: runtime.skills.run(skillId, source) });
+        return runtime.authorization.run(
+          principal,
+          { resourceType: "skill", action: "skill:use", resourceId: skillId },
+          async () => json({ result: runtime.skills.run(skillId, source) }),
+        );
       }
 
       const asset = assets[url.pathname];
@@ -101,9 +183,42 @@ function optionalString(body: Record<string, unknown>, key: string): string | un
   return value;
 }
 
+function optionalSkillStatus(value: string | undefined): "draft" | "published" | undefined {
+  if (value === undefined || value === "") return undefined;
+  if (value === "draft" || value === "published") return value;
+  throw new Error("status 必须是 draft 或 published");
+}
+
 function decodeSkillPath(pathname: string): string | undefined {
   const match = /^\/api\/skills\/([^/]+)(?:\/run)?$/.exec(pathname);
   return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+function decodeSkillAccessPath(pathname: string): string | undefined {
+  const match = /^\/api\/skills\/([^/]+)\/access$/.exec(pathname);
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+function currentPrincipal(request: Request) {
+  const principalId = request.headers.get("x-demo-user-id")?.trim() || "alice";
+  const member = runtime.organization.snapshot().members.find((candidate) => candidate.id === principalId);
+  if (!member) throw new Error(`未知演示用户：${principalId}`);
+  return {
+    id: member.id,
+    type: "user",
+    attributes: { departmentId: member.departmentId, role: member.role },
+  };
+}
+
+function authorizationTrace(principalId: string, action: string, candidates: number, returned: number) {
+  return {
+    provider: runtime.authorizationProvider,
+    principalId,
+    action,
+    result: "allow-filtered",
+    candidates,
+    returned,
+  } as const;
 }
 
 function errorStatus(error: unknown): number {

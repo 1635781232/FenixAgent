@@ -25,6 +25,12 @@ export class AuthorizationDeniedError extends Error {
 export class AuthorizedOperationExecutor {
   constructor(private readonly policy: AuthorizationPolicy) {}
 
+  /** 执行仅需布尔结果的单资源鉴权，供界面能力检查等非业务执行场景复用。 */
+  async check(principal: AppPrincipal, operation: ResourceOperation): Promise<boolean> {
+    const decision = await this.policy.authorize(principal, operation);
+    return decision.result !== "deny";
+  }
+
   async run<T>(
     principal: AppPrincipal,
     operation: ResourceOperation,

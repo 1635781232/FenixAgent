@@ -5,7 +5,11 @@ import {
 } from "@fenix-enterprise/openfga-authorization-plugin";
 import { ENTERPRISE_PROFILE_PROVIDER, enterpriseProfilePlugin } from "@fenix-enterprise/profile-plugin";
 import { AUTHORIZATION_POLICY, createFenixApp, type FenixPlugin } from "@fenix/app-platform";
-import { DISTRIBUTION_PROFILE, registerCommunityBase } from "@fenix/community-app-kit";
+import {
+  COMMUNITY_AUTHORIZATION_POLICY_PROVIDER,
+  DISTRIBUTION_PROFILE,
+  registerCommunityBase,
+} from "@fenix/community-app-kit";
 import { createCore } from "@fenix/core";
 
 /** Enterprise 发行版的显式装配参数。 */
@@ -20,7 +24,7 @@ export function createEnterpriseApp(options: EnterpriseAppOptions) {
   registerCommunityBase(app, createCore());
   app.registerPlugins([
     enterpriseProfilePlugin,
-    createEnterpriseOpenFgaAuthorizationPlugin(options.openFga),
+    createEnterpriseOpenFgaAuthorizationPlugin(options.openFga, COMMUNITY_AUTHORIZATION_POLICY_PROVIDER),
     ...(options.additionalPlugins ?? []),
   ]);
   app.requireProvider(DISTRIBUTION_PROFILE, ENTERPRISE_PROFILE_PROVIDER);
