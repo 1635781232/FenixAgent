@@ -16,10 +16,13 @@ export {
   type CreateSkillInput,
   type Skill,
   type SkillRunResult,
+  type SkillResourceService,
   type SkillListQuery,
   type SkillStatus,
   type UpdateSkillInput,
 } from "./skill-service";
+
+import type { SkillResourceService } from "./skill-service";
 
 /** Core 对 App 层公开的稳定业务能力。 */
 export interface CoreFacade {
@@ -29,6 +32,9 @@ export interface CoreFacade {
 }
 
 export const CORE_FACADE = defineContract<CoreFacade>("fenix.core-facade", 1);
+
+/** 插件可装饰或替换的 Core Skill 资源契约。 */
+export const SKILL_RESOURCE_SERVICE = defineContract<SkillResourceService>("core.skill-resource-service", 1);
 
 export function createCore(): CoreFacade {
   return Object.freeze({

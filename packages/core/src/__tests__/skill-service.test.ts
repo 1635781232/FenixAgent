@@ -43,4 +43,15 @@ describe("SkillService", () => {
       "skill-7",
     ]);
   });
+
+  // 更新和删除必须在 Core 最终操作处再次执行 selector，避免上层先查后无条件修改。
+  test("单资源写操作强制执行授权 selector", () => {
+    const service = new SkillService();
+
+    expect(() => service.update("skill-1", { name: "越权修改" }, { ids: ["skill-2"] })).toThrow(
+      SkillNotFoundError,
+    );
+    expect(() => service.delete("skill-1", { ids: [] })).toThrow(SkillNotFoundError);
+    expect(service.get("skill-1").name).toBe("会议纪要助手");
+  });
 });

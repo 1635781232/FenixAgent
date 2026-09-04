@@ -11,9 +11,12 @@
     "@fenix/community-app-kit": "workspace:*",
     "@fenix/core": "workspace:*",
     "@fenix-enterprise/openfga-authorization-plugin": "workspace:*",
-    "@fenix-enterprise/profile-plugin": "workspace:*"
+    "@fenix-enterprise/profile-plugin": "workspace:*",
+    "@fenix-enterprise/skill-plugin": "workspace:*"
   },
   "scripts": {
+    "dev": "bun run src/server.ts",
+    "start": "bun run src/server.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "bun build src/index.ts --outdir dist --format esm"
   }

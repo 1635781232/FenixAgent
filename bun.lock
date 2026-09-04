@@ -6,10 +6,12 @@
       "name": "fenix-agent-v4-architecture-scaffold",
       "dependencies": {
         "@fenix-enterprise/openfga-authorization-plugin": "workspace:*",
+        "@fenix-enterprise/skill-plugin": "workspace:*",
         "@fenix/app-platform": "workspace:*",
         "@fenix/app-platform-openfga": "workspace:*",
         "@fenix/community-app": "workspace:*",
         "@fenix/community-app-kit": "workspace:*",
+        "@fenix/core": "workspace:*",
         "@fenix/enterprise-app": "workspace:*",
         "@fenix/plugin-sdk": "workspace:*",
       },
@@ -31,6 +33,7 @@
       "dependencies": {
         "@fenix-enterprise/openfga-authorization-plugin": "workspace:*",
         "@fenix-enterprise/profile-plugin": "workspace:*",
+        "@fenix-enterprise/skill-plugin": "workspace:*",
         "@fenix/app-platform": "workspace:*",
         "@fenix/community-app-kit": "workspace:*",
         "@fenix/core": "workspace:*",
@@ -83,11 +86,23 @@
         "@fenix/plugin-sdk": "workspace:*",
       },
     },
+    "plugins/enterprise-skill": {
+      "name": "@fenix-enterprise/skill-plugin",
+      "version": "0.0.0",
+      "dependencies": {
+        "@fenix/app-platform": "workspace:*",
+        "@fenix/community-app-kit": "workspace:*",
+        "@fenix/core": "workspace:*",
+        "@fenix/plugin-sdk": "workspace:*",
+      },
+    },
   },
   "packages": {
     "@fenix-enterprise/openfga-authorization-plugin": ["@fenix-enterprise/openfga-authorization-plugin@workspace:plugins/enterprise-openfga-authorization"],
 
     "@fenix-enterprise/profile-plugin": ["@fenix-enterprise/profile-plugin@workspace:plugins/enterprise-profile"],
+
+    "@fenix-enterprise/skill-plugin": ["@fenix-enterprise/skill-plugin@workspace:plugins/enterprise-skill"],
 
     "@fenix/app-platform": ["@fenix/app-platform@workspace:packages/app-platform"],
 

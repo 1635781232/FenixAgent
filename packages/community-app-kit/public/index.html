@@ -12,7 +12,7 @@
         <span class="brand-mark">F</span>
         <span>Fenix Skill Studio</span>
       </a>
-      <span class="runtime-pill"><span></span>Community App · 统一鉴权默认通过</span>
+      <span class="runtime-pill"><span class="runtime-dot"></span><span id="runtime-label">统一鉴权演示</span></span>
     </header>
 
     <main class="shell">
@@ -20,7 +20,7 @@
         <div>
           <p class="eyebrow">FIRST VERTICAL SLICE</p>
           <h1>Skill 管理工作台</h1>
-          <p>先经过统一授权接口，再执行 Skill 查询和操作。Community Provider 默认通过，尚未接入 OpenFGA。</p>
+          <p id="runtime-description">先经过统一授权接口，再执行 Skill 查询和操作。</p>
         </div>
         <button id="create-skill" class="primary-button">新建 Skill</button>
       </section>
@@ -34,7 +34,7 @@
           <div class="principal-picker">
             <label for="current-user">当前用户</label>
             <select id="current-user" aria-label="当前用户"></select>
-            <span>Community 鉴权默认通过</span>
+            <span id="authorization-mode">正在识别授权 Provider</span>
           </div>
         </div>
         <div id="organization-tree" class="organization-tree" aria-live="polite"></div>

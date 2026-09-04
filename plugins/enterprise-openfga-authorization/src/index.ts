@@ -14,6 +14,14 @@ import {
   type ResourceSelector,
 } from "@fenix/plugin-sdk";
 
+export {
+  SKILL_DEMO_ACTION_RELATIONS,
+  bootstrapBundledOpenFgaSkillDemo,
+  bootstrapOpenFgaSkillDemo,
+  type OpenFgaAuthorizationModelDocument,
+  type OpenFgaDemoBootstrapResult,
+} from "./demo-bootstrap";
+
 export const ENTERPRISE_OPENFGA_PLUGIN_ID = "enterprise.authorization.openfga-plugin";
 export const ENTERPRISE_OPENFGA_POLICY_PROVIDER = "enterprise.authorization.openfga";
 

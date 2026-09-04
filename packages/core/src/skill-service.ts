@@ -38,6 +38,16 @@ export interface SkillRunResult {
   readonly generatedAt: string;
 }
 
+/** Core 对上层公开的 Skill 资源能力，不包含身份和权限引擎语义。 */
+export interface SkillResourceService {
+  list(query?: SkillListQuery, selector?: ResourceSelector): Skill[];
+  get(skillId: string, selector?: ResourceSelector): Skill;
+  create(input: CreateSkillInput): Skill;
+  update(skillId: string, input: UpdateSkillInput, selector?: ResourceSelector): Skill;
+  delete(skillId: string, selector?: ResourceSelector): void;
+  run(skillId: string, source?: string, selector?: ResourceSelector): SkillRunResult;
+}
+
 /** 调用方可将该错误安全映射为 404，而无需识别存储实现。 */
 export class SkillNotFoundError extends Error {
   readonly statusCode = 404;
@@ -67,7 +77,7 @@ function cloneSkill(skill: Skill): Skill {
  *
  * 后续接入数据库时，应以同样的业务契约替换此实现，而不让 HTTP 或 App 层直连数据源。
  */
-export class SkillService {
+export class SkillService implements SkillResourceService {
   private readonly skills = new Map<string, Skill>();
   private nextId = 1;
 
@@ -173,7 +183,8 @@ export class SkillService {
       .map(cloneSkill);
   }
 
-  get(skillId: string): Skill {
+  get(skillId: string, selector: ResourceSelector = {}): Skill {
+    this.assertSelected(skillId, selector);
     return cloneSkill(this.getStored(skillId));
   }
 
@@ -190,7 +201,8 @@ export class SkillService {
     return cloneSkill(skill);
   }
 
-  update(skillId: string, input: UpdateSkillInput): Skill {
+  update(skillId: string, input: UpdateSkillInput, selector: ResourceSelector = {}): Skill {
+    this.assertSelected(skillId, selector);
     const existing = this.getStored(skillId);
     const skill: Skill = {
       ...existing,
@@ -204,12 +216,14 @@ export class SkillService {
     return cloneSkill(skill);
   }
 
-  delete(skillId: string): void {
+  delete(skillId: string, selector: ResourceSelector = {}): void {
+    this.assertSelected(skillId, selector);
     this.getStored(skillId);
     this.skills.delete(skillId);
   }
 
-  run(skillId: string, source?: string): SkillRunResult {
+  run(skillId: string, source?: string, selector: ResourceSelector = {}): SkillRunResult {
+    this.assertSelected(skillId, selector);
     const skill = this.getStored(skillId);
     const material = source?.trim() || "未提供额外材料";
     return {
@@ -227,5 +241,9 @@ export class SkillService {
     const skill = this.skills.get(skillId);
     if (!skill) throw new SkillNotFoundError(skillId);
     return skill;
+  }
+
+  private assertSelected(skillId: string, selector: ResourceSelector): void {
+    if (selector.ids && !selector.ids.includes(skillId)) throw new SkillNotFoundError(skillId);
   }
 }

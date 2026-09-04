@@ -3,9 +3,12 @@ import { AUTHORIZATION_POLICY, createFenixApp } from "@fenix/app-platform";
 import { createCommunityApp } from "@fenix/community-app";
 import {
   COMMUNITY_AUTHORIZATION_POLICY_PROVIDER,
+  COMMUNITY_SKILL_APPLICATION_PROVIDER,
   createCommunitySkillApplication,
   DISTRIBUTION_PROFILE,
+  SKILL_APPLICATION,
 } from "@fenix/community-app-kit";
+import { ENTERPRISE_SKILL_APPLICATION_PROVIDER } from "@fenix-enterprise/skill-plugin";
 import { createEnterpriseApp } from "@fenix/enterprise-app";
 import { defineContract, type FenixPlugin } from "@fenix/plugin-sdk";
 
@@ -45,7 +48,9 @@ describe("V4 架构与 Skill 用例", () => {
     const application = createCommunitySkillApplication();
     await application.start();
 
-    expect(application.skills.list()).toHaveLength(12);
+    const result = await application.skills.list({ id: "alice", type: "user" });
+    expect(result.skills).toHaveLength(12);
+    expect(application.skillProvider).toBe(COMMUNITY_SKILL_APPLICATION_PROVIDER);
   });
 
   // Enterprise App 复用 Community Base，并通过显式插件替换公开契约。
@@ -61,6 +66,7 @@ describe("V4 架构与 Skill 用例", () => {
 
     expect(app.contracts.resolve(DISTRIBUTION_PROFILE)).toEqual({ edition: "enterprise" });
     expect(app.contracts.providerId(AUTHORIZATION_POLICY)).toBe("enterprise.authorization.openfga");
+    expect(app.contracts.providerId(SKILL_APPLICATION)).toBe(ENTERPRISE_SKILL_APPLICATION_PROVIDER);
   });
 
   // OpenFGA 不可用时 Enterprise 必须启动失败，不能绕过或回退到其他权限实现。
@@ -116,6 +122,7 @@ describe("V4 架构与 Skill 用例", () => {
     expect(await readDependencies("apps/enterprise-app/package.json")).toEqual([
       "@fenix-enterprise/openfga-authorization-plugin",
       "@fenix-enterprise/profile-plugin",
+      "@fenix-enterprise/skill-plugin",
       "@fenix/app-platform",
       "@fenix/community-app-kit",
       "@fenix/core",
@@ -130,6 +137,12 @@ describe("V4 架构与 Skill 用例", () => {
     expect(await readDependencies("packages/app-platform/openfga/package.json")).toEqual([]);
     expect(await readDependencies("plugins/enterprise-openfga-authorization/package.json")).toEqual([
       "@fenix/app-platform-openfga",
+      "@fenix/plugin-sdk",
+    ]);
+    expect(await readDependencies("plugins/enterprise-skill/package.json")).toEqual([
+      "@fenix/app-platform",
+      "@fenix/community-app-kit",
+      "@fenix/core",
       "@fenix/plugin-sdk",
     ]);
   });

@@ -11,6 +11,8 @@
   ],
   "scripts": {
     "dev:community": "bun run apps/community-app/src/server.ts",
+    "dev:enterprise": "bun run apps/enterprise-app/src/server.ts",
+    "openfga:bootstrap": "bun run scripts/bootstrap-openfga-demo.ts",
     "test": "bun test",
     "typecheck": "bun run --workspaces --if-present typecheck",
     "build": "bun run --workspaces --if-present build"
@@ -20,8 +22,10 @@
     "@fenix/app-platform-openfga": "workspace:*",
     "@fenix/community-app": "workspace:*",
     "@fenix/community-app-kit": "workspace:*",
+    "@fenix/core": "workspace:*",
     "@fenix/enterprise-app": "workspace:*",
     "@fenix-enterprise/openfga-authorization-plugin": "workspace:*",
+    "@fenix-enterprise/skill-plugin": "workspace:*",
     "@fenix/plugin-sdk": "workspace:*"
   },
   "devDependencies": {

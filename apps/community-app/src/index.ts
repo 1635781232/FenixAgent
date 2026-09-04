@@ -2,4 +2,5 @@
 export {
   createCommunityApplication as createCommunityApp,
   createCommunitySkillApplication,
+  startSkillDemoServer,
 } from "@fenix/community-app-kit";

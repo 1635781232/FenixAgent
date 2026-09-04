@@ -28,6 +28,9 @@ const elements = {
   runSource: document.querySelector("#run-source"),
   runResult: document.querySelector("#run-result"),
   organizationTree: document.querySelector("#organization-tree"),
+  runtimeLabel: document.querySelector("#runtime-label"),
+  runtimeDescription: document.querySelector("#runtime-description"),
+  authorizationMode: document.querySelector("#authorization-mode"),
 };
 
 function escapeHtml(value) {
@@ -108,6 +111,20 @@ async function loadOrganization() {
   renderOrganization(data.organization);
 }
 
+async function loadRuntime() {
+  const data = await request("/api/runtime");
+  const enterprise = data.edition === "enterprise";
+  elements.runtimeLabel.textContent = enterprise
+    ? "Enterprise App · OpenFGA 实时决策"
+    : "Community App · 统一鉴权默认通过";
+  elements.runtimeDescription.textContent = enterprise
+    ? "列表通过 OpenFGA ListObjects 过滤，单资源操作通过 Check 判断。"
+    : "先经过统一授权接口，再执行 Skill 查询和操作；Community Provider 默认通过。";
+  elements.authorizationMode.textContent = enterprise
+    ? "OpenFGA 是唯一权限决策来源"
+    : "Community 鉴权默认通过";
+}
+
 function showToast(message, isError = false) {
   const toast = document.querySelector("#toast");
   toast.textContent = message;
@@ -183,7 +200,10 @@ async function loadSkills() {
   if (elements.statusFilter.value) query.set("status", elements.statusFilter.value);
   const data = await request(`/api/skills${query.size ? `?${query}` : ""}`);
   skills = data.skills;
-  elements.authorizationSummary.textContent = `${data.authorization.principalId} · ${data.authorization.action} · Community Provider 通过 · 返回 ${data.authorization.returned}/${data.authorization.candidates}`;
+  const providerLabel = data.authorization.provider.includes("openfga")
+    ? "OpenFGA 过滤"
+    : "Community Provider 通过";
+  elements.authorizationSummary.textContent = `${data.authorization.principalId} · ${data.authorization.action} · ${providerLabel} · 返回 ${data.authorization.returned}/${data.authorization.candidates}`;
   if (!selectedSkill() && skills.length) {
     selectedSkillId = skills[0].id;
     selectedAccess = undefined;
@@ -299,7 +319,7 @@ document.querySelector("#run-skill").addEventListener("click", async () => {
   }
 });
 
-loadOrganization().then(loadSkills).catch((error) => {
+Promise.all([loadRuntime(), loadOrganization()]).then(loadSkills).catch((error) => {
   elements.list.innerHTML = `<p class="list-empty">加载失败：${escapeHtml(error.message)}</p>`;
   elements.organizationTree.innerHTML = `<p class="list-empty">组织加载失败：${escapeHtml(error.message)}</p>`;
   showToast(error.message, true);

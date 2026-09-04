@@ -6,15 +6,32 @@ import {
 import { OpenFgaClient, type OpenFgaFetch } from "@fenix/app-platform-openfga";
 import {
   EnterpriseOpenFgaAuthorizationPolicy,
+  bootstrapOpenFgaSkillDemo,
 } from "@fenix-enterprise/openfga-authorization-plugin";
+import {
+  ENTERPRISE_SKILL_PERMISSIONS,
+  EnterpriseSkillApplication,
+} from "@fenix-enterprise/skill-plugin";
 import { CommunityAllowAllAuthorizationPolicy } from "@fenix/community-app-kit";
-import type { AuthorizationPolicy } from "@fenix/plugin-sdk";
+import { SkillService } from "@fenix/core";
+import type { AuthorizationPolicy, ResourceOperation } from "@fenix/plugin-sdk";
 
 const OPENFGA_CONFIG = {
   apiUrl: "http://openfga.test/",
   storeId: "store/one",
   authorizationModelId: "model-one",
 } as const;
+
+interface DemoWritePayload {
+  readonly authorization_model_id: string;
+  readonly writes: {
+    readonly tuple_keys: readonly {
+      readonly user: string;
+      readonly relation: string;
+      readonly object: string;
+    }[];
+  };
+}
 
 describe("统一授权拦截器", () => {
   // Community 版不能绕过统一接口，而应把业务候选 IDs 原样作为允许范围返回。
@@ -98,6 +115,48 @@ describe("统一授权拦截器", () => {
 });
 
 describe("OpenFGA 平台接入", () => {
+  // Demo 初始化必须发布模型并投影组织、部门、空间和 Skill 关系，不能只创建空 Store。
+  test("OpenFGA Demo 写入完整关系数据", async () => {
+    let writePayload: DemoWritePayload | undefined;
+    const fetcher: OpenFgaFetch = async (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.includes("/stores?page_size=")) return Response.json({ stores: [] });
+      if (url.endsWith("/stores")) return Response.json({ id: "store-demo", name: "demo" });
+      if (url.endsWith("/authorization-models")) {
+        return Response.json({ authorization_model_id: "model-demo" });
+      }
+      if (url.endsWith("/write")) {
+        writePayload = JSON.parse(String(init?.body)) as DemoWritePayload;
+        return Response.json({});
+      }
+      if (url.endsWith("/read")) return Response.json({ tuples: [] });
+      throw new Error(`Unexpected OpenFGA request: ${url}`);
+    };
+
+    const result = await bootstrapOpenFgaSkillDemo(
+      "http://openfga.test/",
+      { schema_version: "1.1", type_definitions: [] },
+      fetcher,
+    );
+
+    expect(result.config).toEqual({
+      apiUrl: "http://openfga.test",
+      storeId: "store-demo",
+      authorizationModelId: "model-demo",
+    });
+    expect(result.tupleCount).toBe(77);
+    expect(writePayload?.writes.tuple_keys).toContainEqual({
+      user: "department:product#member",
+      relation: "shared_with",
+      object: "skill:skill-1",
+    });
+    expect(writePayload?.writes.tuple_keys).toContainEqual({
+      user: "user:bob",
+      relation: "resource_admin",
+      object: "skill_space:product-space",
+    });
+  });
+
   // 客户端必须携带 Store、模型和 Tuple Key 调用官方 Check API。
   test("OpenFGA Check 使用显式 Store 和模型", async () => {
     let requestBody: unknown;
@@ -198,5 +257,40 @@ describe("OpenFGA 平台接入", () => {
         { resourceType: "skill", action: "skill:unknown", resourceId: "skill-1" },
       ),
     ).resolves.toEqual({ result: "deny", reason: "unmapped_action:skill:unknown" });
+  });
+});
+
+describe("Enterprise Skill 插件", () => {
+  // Enterprise Skill 必须通过统一业务权限调用授权端口，并把返回 selector 交给 Core。
+  test("编辑 Skill 经授权端口后调用 Core", async () => {
+    const operations: ResourceOperation[] = [];
+    const policy: AuthorizationPolicy = {
+      authorize: async (_principal, operation) => {
+        operations.push(operation);
+        return {
+          result: "allow-filtered",
+          selector: { ids: operation.resourceId ? [operation.resourceId] : [] },
+        };
+      },
+    };
+    const application = new EnterpriseSkillApplication(
+      new SkillService(),
+      new AuthorizedOperationExecutor(policy),
+    );
+
+    const updated = await application.update(
+      { id: "alice", type: "user" },
+      "skill-1",
+      { name: "企业会议纪要助手" },
+    );
+
+    expect(updated.name).toBe("企业会议纪要助手");
+    expect(operations).toEqual([
+      {
+        resourceType: "skill",
+        resourceId: "skill-1",
+        action: ENTERPRISE_SKILL_PERMISSIONS.EDIT,
+      },
+    ]);
   });
 });
